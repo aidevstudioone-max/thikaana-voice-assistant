@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Saffron Table — AI voice assistant demo by ठिkaana</title>
+<meta name="description" content="A voice assistant that answers the phone for a restaurant — takes bookings, answers menu questions, handles changes. A scripted demo of what ठिkaana builds." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:        #0E1A16;
+    --bg-lift:   #142420;
+    --surface:   #1A2C27;
+    --line:      rgba(233, 214, 184, 0.14);
+    --fg:        #F2EADC;
+    --fg-2:      #A8B5AE;
+    --fg-3:      #74847D;
+    --saffron:   #E9A23B;
+    --saffron-d: #C4801E;
+    --green:     #5FBF95;
+    --display:   'Playfair Display', Georgia, serif;
+    --sans:      'Inter', system-ui, -apple-system, sans-serif;
+    --mono:      'IBM Plex Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  /* A class-level `display` out-specifies the UA rule for [hidden], so panels
+     with display:flex ignore the attribute entirely. This puts it back. */
+  [hidden] { display: none !important; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(90% 60% at 50% -10%, rgba(233,162,59,0.10), transparent 60%),
+      var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 22px; }
+
+  /* ── header ─────────────────────────────────────────────────────────── */
+  header { padding: 30px 0 10px; }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: baseline; gap: 12px; }
+  .brand h1 { font-family: var(--display); font-size: 1.6rem; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .brand span { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-3); }
+  .by {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--fg-3); text-decoration: none;
+    border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px;
+    transition: color .2s, border-color .2s;
+  }
+  .by:hover, .by:focus-visible { color: var(--saffron); border-color: var(--saffron); }
+
+  /* ── hero ───────────────────────────────────────────────────────────── */
+  .hero { padding: 46px 0 30px; max-width: 660px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--saffron);
+    border: 1px solid rgba(233,162,59,0.35); background: rgba(233,162,59,0.08);
+    border-radius: 999px; padding: 7px 14px; margin-bottom: 22px;
+  }
+  .hero h2 {
+    font-family: var(--display); font-weight: 600;
+    font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.1;
+    letter-spacing: -0.02em; margin: 0 0 16px; text-wrap: balance;
+  }
+  .hero h2 em { font-style: italic; color: var(--saffron); }
+  .hero p { color: var(--fg-2); font-size: 1.04rem; margin: 0; max-width: 56ch; }
+
+  /* ── the demo ───────────────────────────────────────────────────────── */
+  .demo {
+    display: grid; grid-template-columns: 1fr; gap: 18px;
+    margin: 34px 0 0;
+  }
+  @media (min-width: 900px) { .demo { grid-template-columns: 1.25fr 0.75fr; align-items: start; } }
+
+  .panel {
+    background: var(--bg-lift); border: 1px solid var(--line);
+    border-radius: 18px; padding: 24px;
+  }
+  .panel h3 {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--fg-3); margin: 0 0 18px; font-weight: 500;
+  }
+
+  /* mic */
+  .mic-row { display: flex; align-items: center; gap: 18px; margin-bottom: 20px; }
+  .mic {
+    position: relative; flex: none; width: 76px; height: 76px; border-radius: 50%;
+    border: none; cursor: pointer; background: var(--saffron); color: #12100A;
+    display: grid; place-items: center; transition: transform .18s, background .2s;
+  }
+  .mic:hover { transform: translateY(-2px); }
+  .mic:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+  .mic:focus-visible { outline: 3px solid var(--saffron); outline-offset: 4px; }
+  .mic.live { background: #E8604A; color: #fff; }
+  .mic.live::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid #E8604A; animation: ring 1.4s ease-out infinite;
+  }
+  @keyframes ring { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.7); opacity: 0; } }
+  .mic-hint { font-size: 0.92rem; color: var(--fg-2); }
+  .mic-hint b { display: block; color: var(--fg); font-size: 1rem; font-weight: 600; margin-bottom: 2px; }
+
+  /* transcript */
+  .log { display: flex; flex-direction: column; gap: 12px; min-height: 150px; margin-bottom: 18px; }
+  .turn { display: flex; gap: 11px; font-size: 0.95rem; animation: rise .32s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .turn .who {
+    flex: none; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em;
+    text-transform: uppercase; padding-top: 4px; width: 52px;
+  }
+  .turn.you .who { color: var(--fg-3); }
+  .turn.bot .who { color: var(--saffron); }
+  .turn p { margin: 0; color: var(--fg); }
+  .turn.you p { color: var(--fg-2); }
+  .log .empty { color: var(--fg-3); font-size: 0.95rem; font-style: italic; }
+
+  /* input */
+  .say { display: flex; gap: 9px; margin-bottom: 14px; }
+  .say input {
+    flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--line);
+    color: var(--fg); font: inherit; font-size: 0.94rem; padding: 12px 15px; border-radius: 11px;
+  }
+  .say input::placeholder { color: var(--fg-3); }
+  .say input:focus { outline: 2px solid var(--saffron); outline-offset: 1px; }
+  .say button {
+    flex: none; background: var(--surface); border: 1px solid var(--line); color: var(--fg);
+    font: inherit; font-weight: 600; font-size: 0.9rem; padding: 0 18px; border-radius: 11px; cursor: pointer;
+  }
+  .say button:hover { border-color: var(--saffron); color: var(--saffron); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button {
+    font-family: var(--mono); font-size: 0.72rem; color: var(--fg-2);
+    background: transparent; border: 1px solid var(--line); border-radius: 999px;
+    padding: 8px 13px; cursor: pointer; transition: all .18s;
+  }
+  .chips button:hover, .chips button:focus-visible {
+    color: var(--fg); border-color: var(--saffron); background: rgba(233,162,59,0.09); transform: translateY(-1px);
+  }
+
+  /* booking card */
+  .booking { position: sticky; top: 22px; }
+  .booking .row { display: flex; justify-content: space-between; align-items: baseline; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .booking .row:last-of-type { border-bottom: none; }
+  .booking .k { font-size: 0.86rem; color: var(--fg-3); }
+  .booking .v { font-family: var(--display); font-size: 1.24rem; font-weight: 600; transition: color .3s; }
+  .booking .v.set { color: var(--saffron); }
+  .status {
+    margin-top: 16px; text-align: center; font-family: var(--mono);
+    font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 11px; border-radius: 10px; border: 1px dashed var(--line); color: var(--fg-3);
+  }
+  .status.held { border-style: solid; border-color: rgba(233,162,59,0.5); color: var(--saffron); background: rgba(233,162,59,0.08); }
+  .status.confirmed { border-style: solid; border-color: rgba(95,191,149,0.5); color: var(--green); background: rgba(95,191,149,0.10); }
+
+  /* ── honesty + cta ──────────────────────────────────────────────────── */
+  .truth {
+    margin: 30px 0 0; padding: 20px 22px; border-radius: 14px;
+    background: var(--bg-lift); border: 1px solid var(--line);
+    display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;
+  }
+  .truth p { margin: 0; font-size: 0.93rem; color: var(--fg-2); flex: 1; min-width: 260px; }
+  .truth b { color: var(--fg); }
+  .cta {
+    flex: none; text-decoration: none; font-weight: 600; font-size: 0.93rem;
+    background: var(--saffron); color: #12100A; padding: 12px 22px; border-radius: 999px;
+    transition: transform .18s;
+  }
+  .cta:hover { transform: translateY(-2px); }
+  .cta:focus-visible { outline: 3px solid var(--saffron); outline-offset: 3px; }
+
+  .unsupported {
+    display: none; margin-bottom: 16px; padding: 12px 15px; border-radius: 11px;
+    background: rgba(233,162,59,0.08); border: 1px solid rgba(233,162,59,0.3);
+    font-size: 0.88rem; color: var(--fg-2);
+  }
+  .unsupported.show { display: block; }
+
+  footer { margin: 46px 0 40px; padding-top: 22px; border-top: 1px solid var(--line); font-size: 0.84rem; color: var(--fg-3); }
+  footer a { color: var(--saffron); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+
+  /* ── channel switcher ───────────────────────────────────────────────── */
+  .channels { display: flex; gap: 8px; margin: 30px 0 0; flex-wrap: wrap; }
+  .channels button {
+    font-family: var(--sans); font-size: 0.88rem; font-weight: 600; color: var(--fg-2);
+    background: var(--bg-lift); border: 1px solid var(--line); border-radius: 999px;
+    padding: 11px 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 9px;
+    transition: all .2s;
+  }
+  .channels button:hover { color: var(--fg); border-color: rgba(233,162,59,.5); }
+  .channels button[aria-selected="true"] {
+    color: #12100A; background: var(--saffron); border-color: var(--saffron);
+  }
+  .channels button:focus-visible { outline: 3px solid var(--saffron); outline-offset: 3px; }
+  .channels .sound {
+    margin-left: auto; font-size: .8rem; color: var(--fg-3); background: transparent;
+  }
+  .channels .sound[aria-pressed="false"] { opacity: .6; }
+  .channel-note {
+    margin: 14px 0 0; font-size: 0.9rem; color: var(--fg-3); max-width: 62ch;
+  }
+  .channel-note b { color: var(--fg-2); font-weight: 600; }
+
+  /* ── phone frame ────────────────────────────────────────────────────── */
+  .stage { display: grid; place-items: center; padding: 8px 0 4px; }
+  .phone {
+    position: relative; width: 300px; height: 588px; border-radius: 40px;
+    background: #07100D; border: 1px solid rgba(233,214,184,.16);
+    box-shadow: 0 40px 90px -40px #000, inset 0 0 0 6px #0C1512;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .phone-notch {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 96px; height: 20px; border-radius: 999px; background: #000; z-index: 5;
+  }
+  .sim-tag {
+    position: absolute; top: 14px; right: 16px; z-index: 6;
+    font-family: var(--mono); font-size: 0.5rem; letter-spacing: .14em;
+    color: var(--fg-3); border: 1px solid var(--line); border-radius: 999px; padding: 3px 7px;
+  }
+
+  /* whatsapp */
+  .wa-top {
+    display: flex; align-items: center; gap: 10px; padding: 40px 14px 12px;
+    background: #10241D; border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .wa-avatar, .wa-call-avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    background: var(--saffron); color: #12100A; font-weight: 700; font-size: .74rem;
+  }
+  .wa-who { flex: 1; min-width: 0; line-height: 1.25; }
+  .wa-who b { display: block; font-size: .84rem; }
+  .wa-who span { font-size: .68rem; color: var(--fg-3); }
+  .wa-callicon { color: var(--fg-2); }
+  .wa-body {
+    flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column;
+    gap: 8px; background: #0A1712;
+  }
+  .wa-msg {
+    max-width: 82%; padding: 9px 12px; border-radius: 13px; font-size: .8rem; line-height: 1.45;
+    animation: pop .26s ease both;
+  }
+  @keyframes pop { from { opacity: 0; transform: translateY(7px) scale(.97); } to { opacity: 1; transform: none; } }
+  .wa-msg.out { align-self: flex-end; background: #1F4F3C; border-bottom-right-radius: 4px; }
+  .wa-msg.in  { align-self: flex-start; background: #182C25; border-bottom-left-radius: 4px; }
+  .wa-msg.typing { display: flex; gap: 4px; padding: 12px 14px; }
+  .wa-msg.typing i {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--fg-3);
+    animation: blink 1.2s infinite;
+  }
+  .wa-msg.typing i:nth-child(2) { animation-delay: .2s; }
+  .wa-msg.typing i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,60%,100% { opacity: .25; } 30% { opacity: 1; } }
+  .wa-msg.callbtn {
+    align-self: stretch; max-width: none; text-align: center; background: #1DA851; color: #fff;
+    display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 13px;
+    transition: transform .2s, filter .2s;
+  }
+  .wa-msg.callbtn small { font-size: .64rem; opacity: .85; }
+  .wa-msg.callbtn.tapped { transform: scale(.95); filter: brightness(1.35); }
+
+  .wa-call {
+    position: absolute; inset: 0; z-index: 4; background: #0B1A15;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 30px 20px; text-align: center; animation: pop .3s ease both;
+  }
+  .wa-call-avatar { width: 66px; height: 66px; font-size: 1.2rem; margin-bottom: 10px; }
+  .wa-call-name { font-size: 1.02rem; font-weight: 600; }
+  .wa-call-timer { font-family: var(--mono); font-size: .78rem; color: var(--green); }
+  .wa-call-meta { font-size: .62rem; color: var(--fg-3); margin-bottom: 8px; }
+
+  /* pstn */
+  .pstn, .pstn-live, .pstn-summary {
+    position: absolute; inset: 0; z-index: 3; padding: 60px 22px 26px;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    animation: pop .3s ease both;
+  }
+  .pstn { justify-content: center; gap: 5px; }
+  .pstn-label { font-family: var(--mono); font-size: .6rem; letter-spacing: .16em; color: var(--fg-3); text-transform: uppercase; }
+  .pstn-num { font-family: var(--display); font-size: 1.36rem; font-weight: 600; }
+  .pstn-sub { font-size: .72rem; color: var(--fg-3); }
+  .ring { position: relative; width: 84px; height: 84px; margin: 22px 0; }
+  .ring span {
+    position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--saffron);
+    animation: ringpulse 1.9s ease-out infinite; opacity: 0;
+  }
+  .ring span:nth-child(2) { animation-delay: .63s; }
+  .ring span:nth-child(3) { animation-delay: 1.26s; }
+  @keyframes ringpulse { 0% { transform: scale(.55); opacity: .85; } 100% { transform: scale(1.25); opacity: 0; } }
+  .pstn-answer { font-size: .74rem; color: var(--saffron); }
+
+  .pstn-live { justify-content: center; gap: 22px; }
+  .pstn-live-top { font-size: .72rem; color: var(--fg-2); display: flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: center; }
+  .pstn-live-top .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .pstn-timer { font-family: var(--mono); color: var(--green); }
+
+  /* waveform — the visual proof that someone is talking */
+  .wave { display: flex; align-items: center; justify-content: center; gap: 4px; height: 46px; }
+  .wave.big { height: 66px; gap: 5px; }
+  .wave i {
+    width: 4px; height: 20%; border-radius: 999px; background: var(--fg-3);
+    transition: background .25s;
+  }
+  .wave.big i { width: 5px; }
+  .wave.live i { animation: bounce .78s ease-in-out infinite; background: var(--saffron); }
+  .wave.live.agent i { background: var(--green); }
+  .wave i:nth-child(2n) { animation-delay: .1s !important; }
+  .wave i:nth-child(3n) { animation-delay: .22s !important; }
+  .wave i:nth-child(4n) { animation-delay: .34s !important; }
+  @keyframes bounce { 0%,100% { height: 18%; } 50% { height: 92%; } }
+
+  .cap { font-size: .8rem; line-height: 1.5; color: var(--fg); min-height: 68px; max-width: 250px; }
+  .cap b {
+    display: block; font-family: var(--mono); font-size: .56rem; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--fg-3); margin-bottom: 5px;
+  }
+
+  .pstn-summary { justify-content: center; gap: 12px; }
+  .pstn-summary .tick {
+    width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(95,191,149,.14); color: var(--green); font-size: 1.3rem;
+  }
+  .pstn-summary-t { font-family: var(--display); font-size: 1.16rem; font-weight: 600; }
+  .pstn-summary dl { width: 100%; margin: 6px 0 0; }
+  .pstn-summary dl div { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: .78rem; }
+  .pstn-summary dt { color: var(--fg-3); margin: 0; }
+  .pstn-summary dd { margin: 0; font-weight: 600; }
+  .pstn-summary p { font-size: .72rem; color: var(--fg-3); margin: 10px 0 0; font-style: italic; }
+
+  .replay {
+    margin-top: 16px; font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer;
+    background: transparent; color: var(--saffron); border: 1px solid rgba(233,162,59,.45);
+    border-radius: 999px; padding: 10px 22px;
+  }
+  .replay:hover { background: rgba(233,162,59,.1); }
+  .replay:focus-visible { outline: 3px solid var(--saffron); outline-offset: 3px; }
+
+  @media (max-width: 420px) { .phone { width: 100%; max-width: 300px; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="bar">
+      <div class="brand">
+        <h1>Saffron Table</h1>
+        <span>Modern Indian · Park Street</span>
+      </div>
+      <a class="by" href="https://thikaana.co" target="_blank" rel="noopener">Built by ठिkaana</a>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="badge"><span>●</span> Scripted demo</div>
+    <h2>The phone gets answered. <em>Every time.</em></h2>
+    <p>
+      A voice assistant that takes bookings, answers menu questions and handles
+      changes — while the kitchen is at full tilt and nobody can reach the phone.
+      Talk to it below.
+    </p>
+  </section>
+
+  <div class="channels" role="tablist" aria-label="Channel">
+    <button role="tab" data-ch="web" aria-selected="true">Website</button>
+    <button role="tab" data-ch="whatsapp" aria-selected="false">WhatsApp</button>
+    <button role="tab" data-ch="phone" aria-selected="false">Phone call</button>
+    <button class="sound" id="sound" type="button" aria-pressed="true" title="Turn the voices off">
+      <span id="sound-icon">🔊</span> Sound on
+    </button>
+  </div>
+  <p class="channel-note" id="channel-note">
+    <b>Same assistant, three ways to reach it.</b> This one is live — talk to it or type.
+  </p>
+
+  <div class="demo">
+    <div class="panel" id="web-panel">
+      <h3>Talk to the restaurant</h3>
+
+      <div class="unsupported" id="unsupported">
+        Your browser can't do speech recognition — Firefox doesn't support it yet.
+        Type below or tap a suggestion instead; everything else works the same.
+      </div>
+
+      <div class="mic-row">
+        <button class="mic" id="mic" aria-label="Start talking">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" fill="currentColor" stroke="none"/>
+            <path d="M19 11a7 7 0 0 1-14 0M12 18v4"/>
+          </svg>
+        </button>
+        <div class="mic-hint" id="hint">
+          <b>Tap and speak</b>
+          Try “table for four at eight tonight”
+        </div>
+      </div>
+
+      <div class="log" id="log">
+        <p class="empty">The conversation will appear here.</p>
+      </div>
+
+      <form class="say" id="say">
+        <input id="typed" type="text" placeholder="…or type what you'd say" autocomplete="off" aria-label="Type what you would say" />
+        <button type="submit">Send</button>
+      </form>
+
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <div class="panel" id="sim-panel" hidden>
+      <h3 id="sim-title">WhatsApp</h3>
+      <div class="stage" id="stage"></div>
+      <div style="text-align:center"><button class="replay" id="replay" hidden>Play it again</button></div>
+    </div>
+
+    <div class="panel booking">
+      <h3>Tonight's booking</h3>
+      <div class="row"><span class="k">Guests</span><span class="v" id="v-party">—</span></div>
+      <div class="row"><span class="k">Time</span><span class="v" id="v-time">—</span></div>
+      <div class="row"><span class="k">Date</span><span class="v" id="v-date">—</span></div>
+      <div class="row"><span class="k">Name</span><span class="v" id="v-name">—</span></div>
+      <div class="status" id="status">No booking yet</div>
+    </div>
+  </div>
+
+  <div class="truth">
+    <p>
+      <b>This one follows a script.</b> It recognises about eight things a caller
+      might say, so a determined visitor can confuse it. A working version answers
+      anything, knows your real menu and diary, and picks up on WhatsApp too —
+      that's what we build.
+    </p>
+    <a class="cta" href="https://thikaana.co/#contact" target="_blank" rel="noopener">Get one for your business</a>
+  </div>
+
+  <footer>
+    Saffron Table is a fictional restaurant, built as a demonstration by
+    <a href="https://thikaana.co" target="_blank" rel="noopener">ठिkaana</a>.
+    Speech recognition and speech run entirely in your browser — nothing is recorded or sent anywhere.
+  </footer>
+</div>
+
+<script type="module">
+import { respondTo, SUGGESTIONS, RESTAURANT } from './script.js';
+import { whatsappMarkup, phoneMarkup, playWhatsApp, playPhone, audio, stopSpeaking } from './channels.js';
+
+const $ = (id) => document.getElementById(id);
+const log = $('log'), micBtn = $('mic'), hint = $('hint'), chips = $('chips');
+
+let state = {
+  party: null, time: null, name: null, status: 'none',
+  date: new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' }),
+};
+
+/* ── booking card ───────────────────────────────────────────────────────── */
+function paint() {
+  const set = (el, val) => {
+    const node = $(el);
+    node.textContent = val ?? '—';
+    node.classList.toggle('set', Boolean(val));
+  };
+  set('v-party', state.party);
+  set('v-time', state.time);
+  set('v-date', state.party || state.time ? state.date : null);
+  set('v-name', state.name);
+
+  const s = $('status');
+  s.className = 'status' + (state.status === 'none' ? '' : ' ' + state.status);
+  s.textContent =
+    state.status === 'confirmed' ? '✓ Booking confirmed'
+    : state.status === 'held' ? 'Table held — awaiting confirmation'
+    : 'No booking yet';
+}
+
+/* ── transcript ─────────────────────────────────────────────────────────── */
+function addTurn(who, text) {
+  log.querySelector('.empty')?.remove();
+  const row = document.createElement('div');
+  row.className = 'turn ' + who;
+  row.innerHTML = `<div class="who">${who === 'you' ? 'You' : 'Saffron'}</div><p></p>`;
+  row.querySelector('p').textContent = text;
+  log.append(row);
+  log.scrollTop = log.scrollHeight;
+}
+
+/* ── voice out ──────────────────────────────────────────────────────────── */
+let voice = null;
+function pickVoice() {
+  const all = speechSynthesis.getVoices();
+  voice =
+    all.find((v) => /en-IN/i.test(v.lang)) ||
+    all.find((v) => /en-GB/i.test(v.lang)) ||
+    all.find((v) => /^en/i.test(v.lang)) || null;
+}
+pickVoice();
+speechSynthesis.addEventListener('voiceschanged', pickVoice);
+
+function speak(text) {
+  if (audio.muted) return;
+  if (!voice) pickVoice();
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if (voice) u.voice = voice;
+    u.rate = 1.02; u.pitch = 1.0;
+    speechSynthesis.speak(u);
+  } catch { /* speech is a bonus, never a requirement */ }
+}
+
+/* ── the turn ───────────────────────────────────────────────────────────── */
+function handle(said) {
+  if (!said.trim()) return;
+  addTurn('you', said);
+  const { text, state: next } = respondTo(said, state);
+  state = next;
+  paint();
+  setTimeout(() => { addTurn('bot', text); speak(text); }, 320);
+}
+
+/* ── voice in ───────────────────────────────────────────────────────────── */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null, listening = false;
+
+if (!SR) {
+  $('unsupported').classList.add('show');
+  micBtn.disabled = true;
+  hint.innerHTML = '<b>Speech not supported here</b>Type below or tap a suggestion';
+} else {
+  recog = new SR();
+  recog.lang = 'en-IN';
+  recog.interimResults = false;
+  recog.maxAlternatives = 1;
+
+  recog.onstart = () => {
+    listening = true;
+    micBtn.classList.add('live');
+    hint.innerHTML = '<b>Listening…</b>Speak now, then pause';
+  };
+  recog.onresult = (e) => handle(e.results[0][0].transcript);
+  recog.onerror = (e) => {
+    hint.innerHTML =
+      e.error === 'not-allowed'
+        ? '<b>Microphone blocked</b>Allow it in your browser, or just type below'
+        : "<b>Didn't hear anything</b>Tap to try again, or type below";
+  };
+  recog.onend = () => {
+    listening = false;
+    micBtn.classList.remove('live');
+    if (!/blocked|hear/.test(hint.textContent)) {
+      hint.innerHTML = '<b>Tap and speak</b>Try “table for four at eight tonight”';
+    }
+  };
+
+  micBtn.addEventListener('click', () => {
+    if (listening) { recog.stop(); return; }
+    try { recog.start(); } catch { /* already starting */ }
+  });
+}
+
+/* ── typed + chips ──────────────────────────────────────────────────────── */
+$('say').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const box = $('typed');
+  handle(box.value);
+  box.value = '';
+});
+
+SUGGESTIONS.forEach((s) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = s;
+  b.addEventListener('click', () => handle(s));
+  chips.append(b);
+});
+
+
+/* ── channel switcher ───────────────────────────────────────────────────── */
+const NOTES = {
+  web: '<b>Same assistant, three ways to reach it.</b> This one is live — talk to it or type.',
+  whatsapp:
+    "<b>On WhatsApp.</b> The customer taps a call button inside the chat and speaks to the assistant over data — encrypted, and with no call charges on either side. Simulated below.",
+  phone:
+    "<b>On the restaurant's phone number.</b> It answers on the second ring, while the kitchen is at full tilt and nobody can get to the handset. Simulated below.",
+};
+
+const webPanel = $('web-panel'), simPanel = $('sim-panel'), stage = $('stage');
+const replay = $('replay'), note = $('channel-note'), simTitle = $('sim-title');
+let running = null;   // the Playback in flight, so switching away can stop it
+let current = 'web';
+
+function resetBooking() {
+  state = { party: null, time: null, name: null, status: 'none', date: state.date };
+  paint();
+}
+
+async function play(channel) {
+  running?.stop();
+  replay.hidden = true;
+  resetBooking();
+  log.innerHTML = '<p class="empty">The conversation appears here as the call runs.</p>';
+
+  stage.innerHTML = (channel === 'whatsapp' ? whatsappMarkup() : phoneMarkup())
+    .replace('<div class="phone-notch"></div>', '<div class="phone-notch"></div><div class="sim-tag">SIMULATED</div>');
+
+  const opts = {
+    state,
+    onBooking: (s) => { state = s; paint(); },
+    onTranscript: (who, text) => addTurn(who === 'agent' ? 'bot' : 'you', text),
+    register: (pb) => { running = pb; },
+  };
+
+  try {
+    if (channel === 'whatsapp') await playWhatsApp(stage, opts);
+    else await playPhone(stage, opts);
+  } catch { /* switching channels mid-play is not an error */ }
+
+  if (current === channel) replay.hidden = false;
+}
+
+function selectChannel(channel) {
+  current = channel;
+  running?.stop();
+  stopSpeaking();
+  document.querySelectorAll('.channels button').forEach((b) =>
+    b.setAttribute('aria-selected', String(b.dataset.ch === channel)),
+  );
+  note.innerHTML = NOTES[channel];
+
+  if (channel === 'web') {
+    webPanel.hidden = false;
+    simPanel.hidden = true;
+    stage.innerHTML = '';
+    resetBooking();
+    log.innerHTML = '<p class="empty">The conversation will appear here.</p>';
+    return;
+  }
+  webPanel.hidden = true;
+  simPanel.hidden = false;
+  simTitle.textContent = channel === 'whatsapp' ? 'WhatsApp' : 'Incoming call';
+  play(channel);
+}
+
+document.querySelectorAll('.channels button[role="tab"]').forEach((b) =>
+  b.addEventListener('click', () => selectChannel(b.dataset.ch)),
+);
+
+const soundBtn = $('sound');
+soundBtn.addEventListener('click', () => {
+  audio.muted = !audio.muted;
+  if (audio.muted) stopSpeaking();
+  soundBtn.setAttribute('aria-pressed', String(!audio.muted));
+  soundBtn.title = audio.muted ? 'Turn the voices on' : 'Turn the voices off';
+  soundBtn.innerHTML = audio.muted
+    ? '<span id="sound-icon">🔇</span> Sound off'
+    : '<span id="sound-icon">🔊</span> Sound on';
+});
+
+/* Leaving the tab mid-call and coming back to a talking page is unpleasant. */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { running?.stop(); stopSpeaking(); }
+});
+replay.addEventListener('click', () => play(current));
+
+paint();
+document.title = `${RESTAURANT.name} — AI voice assistant demo by ठिkaana`;
+</script>
+</body>
+</html>
